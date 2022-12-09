@@ -1,0 +1,1147 @@
+ #+TITLE: On Chain Privacy
+ #+STARTUP: show2levels
+
+* OH HAI!
+** I'm Yuval / nothingmuch
+*** burnt out code monkey
+*** centralized coinjoin disrespecter
+** interrupt for questions!
+** complaints:
+*** yours and mine: [[https://twitter.com/mHaGqnOACyFm0h5][@mHaGqnOACyFm0h5]] & [[https://mastodon.social/nothingmuch][@nothingmuch@mastodon.social]]
+*** yours: [[mailto:nothingmuch@woobling.org][nothingmuch@woobling.org]]
+* Today's agenda
+** some basic assumptions
+** models for studying privacy
+** applying the models to Bitcoin
+** transacting privately as an optimization problem
+** practical challenges for realizing privacy on chain
+* Why care about privacy?
+** individual
+*** Agency
+*** Safety
+** social / emergent
+*** Fungibility
+*** Censorship resistance
+** a lot of room for improvement!
+* Why (I) care about Bitcoin?
+** least unfair
+** favors verification
+** PoW is good actually
+** have you even read Ideal Money?
+* Part 2: Theoretical Models
+* So what even is privacy?
+** control over one's personal information
+** selective disclosure
+** anonymity is limiting case
+* OK so what even is anonymity?
+** being part of a crowd
+** blending into that crowd
+** how hard is for an adversary to deanonymize?
+** who is the adversary?
+*** counterparties
+*** network peers
+*** attackers
+*** dragnet surveillance
+* k-anonymity
+** [[https://dataprivacylab.org/dataprivacy/projects/kanonymity/paper3.pdf][Protecting Privacy when Disclosing Information: k-Anonymity and Its Enforcement through Generalization and Suppression]] by Pierangela Samarati and Latanya Sweeney
+** most basic rigorous model of an anonymity set
+*** fancy name for "crowd"
+*** $k$ denotes the size of the set
+*** implies the adversary can guess no better than chance
+* Identifiers and Quasi-identifiers
+** "data release"
+*** a table
+*** "entries"/rows represent entities/individuals
+*** "attributes"/columns describe them
+** unique values: trivially non-anonymous
+** but even non-unique values might suffice to deanonymize!
+*** *combinations* of quasi-identifiers can themselves be unique
+*** can be linked to external data sources to re-identify
+** "Generalization & Suppression"
+*** a procedure for anonymizing data
+*** enforces $k$ anonymity
+* Entropic model
+** [[https://sci-hub.se/https://link.springer.com/chapter/10.1007/3-540-36467-6_5][Towards Measuring Anonymity]] by Claudia Diaz, Stefaan Seys, Joris Claessens, and Bart Preneel
+** qualitative model of adversary capabilities
+\[
+  \{ \mathrm{active}, \mathrm{passive} \}
+  \times
+  \{ \mathrm{global}, \mathrm{local} \}
+  \times
+  \{ \mathrm{internal}, \mathrm{external} \}
+\]
+** messages exchanged between senders & receivers
+** adversary guesses the sender or receiver
+*** generalizes k-anonymity
+*** implies adversary can assign non-uniform probabilities
+* Entropic model
+** given $p_i = Pr(X = i)$
+*** the probability that the sender/receiver is $i$
+** the entropy $H(X)$ is defined as
+\[ -\sum_{i=1}^{N} p_i log_2(p_i) \]
+* Part 3: Looking at Bitcoin
+* Idealized token abstraction
+** let's call it "pie in the sky"
+** anyone can own a slice
+** size of slices can vary
+*** and it's the only thing to compare
+** anyone can transfer (part of) their slice
+** and that's it!
+*** maybe we know the size of the pie
+*** maybe it's discrete, maybe can be subdivided infinitely
+*** maybe it works over the internet
+*** we don't specify how it's obtained in the first place
+* Maximally private pie in the sky
+** can't link transfers
+*** to parties
+*** to other transfers
+** don't reveal transferred amount
+** don't reveal sender/receiver's total share
+* Some well known approximations
+** fiat
+*** total supply is performance art
+*** initial distribution discriminatory
+*** digital version is a panopticon
+*** sometimes computer says no
+** Au-197
+*** kind of cumbersome
+** e-cash
+*** issuer can have its pie and eat it too
+* Some more obscure ones
+** [[https://arxiv.org/pdf/1604.01383.pdf][Quantum Bitcoin]] (theoretical)
+** ZCash shielded pool
+* What about Bitcoin?
+** works over the internet
+*** network level (quasi) identifiers, like IP addresses
+** proof of work enables:
+*** Nakamoto consensus (agreeing on the state of the pie)
+*** initial distribution
+** ownership encoded through knowledge of secrets
+*** public keys are unique identifiers, but pseudonymous
+*** transfers authorized by signatures
+** transparent amounts, auditable supply
+*** no fancy cryptographic assumptions for this part
+*** also quasi identifiers
+** transaction graph with transparent links
+*** connectivity gives rise exponential number of quasi-identifiers
+** trivially non-fungible
+*** (in a technical sense)
+* Network level privacy
+** [[https://www.freehaven.net/anonbib/cache/oreilly-usability.pdf][Anonymity Loves Company: Usability and the Network Effect]] by Roger Dingledine and Nick Mathewson
+** Amiti Uttarwar's rebroadcast work
+*** dusting for rebroadcast
+** Light client privacy
+*** +BIP 37+ (Bloom filters)
+*** BIP 15{7,8} (neutrino filters)
+*** [[https://usespiral.com/][SpiralBTC]] private information retrieval based balance queries
+* Network level privacy
+** [[https://arxiv.org/pdf/2201.11860.pdf][On the Anonymity of Peer-To-Peer Network Anonymity Schemes Used by Cryptocurrencies]] by Piyush Kumar Sharma, Devashish Gosain, and Claudia Diaz
+*** Applies Diaz et al's entropic model to:
+**** Dandelion & Dandelion++ (privacy enhanced transaction broadcast)
+**** Lightning Network Payments
+*** Even conservative assumptions about adversary capabilities predict rather low entropies
+* Information external to Bitcoin
+** Trusted 3rd parties
+*** Chilling effect of censorship by Scams like Blockfi & FTX
+*** Unintended attacks on privacy by regulartors like [[https://twitter.com/hdevalence/status/1578128350958059520][Celsius court filings]]
+** Other blockchains
+*** UTXO set forks & bad wallets may reuse keys across chains (incl. testnet)
+*** swaps can leak metadata
+* Part 4: On Chain
+* Basic Transaction Structure
+#+NAME: fig:basic_transaction
+#+BEGIN_SRC dot :file basic_transaction.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_2_inputs {
+            graph [margin=0 style=invis]
+            input_2_1 [label=1.1]
+            input_2_2 [label=0.7999]
+        }
+        subgraph cluster_tx_2_outputs {
+            graph [margin=0 style=invis]
+            output_2_1 [label=1.5]
+            output_2_2 [label=0.3998]
+        }
+        input_2_1 -> output_2_1 [constraint=true len=0.01 style=invis]
+    }
+
+    // Mark unspent coins, normally the border color is transparent
+    output_2_1 [color="#333333"]
+    output_2_2 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:basic_transaction
+[[file:basic_transaction.svg]]
+
+* Transaction fingerprints
+** types & scripts
+** signature grinding
+** nLocktime
+** fees
+*** numerical values of fees & feerates
+*** fee estimation
+** https://github.com/achow101/wallet-fingerprinting
+** https://b10c.me/observations/
+* A Strange Transaction?
+#+NAME: fig:strange_transactions
+#+BEGIN_SRC dot :file strange_transactions.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    // group together the coins of a single transact    io  n
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+
+        // group together the inputs
+        subgraph cluster_tx_1_inputs {
+            graph [margin=0 style=invis]
+            input_1_1 [label=1.0]
+            input_1_2 [label=0.1001]
+            input_1_3 [label=0.4]
+            input_1_4 [label=0.3]
+            input_1_5 [label=0.2]
+        }
+
+        // group together the outputs
+        subgraph cluster_tx_1_outputs {
+            graph [margin=0 style=invis]
+            output_1_1 [label=1.1]
+            output_1_2 [label=0.7999]
+            output_1_3 [label=0.1]
+        }
+
+        // add an invisible edge from one of the inputs to one of the outputs,
+        // causing them to be laid out in two columns
+        input_1_1 -> output_1_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_2 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_2_inputs {
+            graph [margin=0 style=invis]
+            input_2_1 [label=1.1]
+            input_2_2 [label=0.7999]
+        }
+        subgraph cluster_tx_2_outputs {
+            graph [margin=0 style=invis]
+            output_2_1 [label=1.5]
+            output_2_2 [label=0.3998]
+        }
+        input_2_1 -> output_2_1 [constraint=true len=0.01 style=invis]
+    }
+
+    // Connect outputs to the inputs that spend them
+    output_1_1 -> input_2_1
+    output_1_2 -> input_2_2
+
+    // Mark unspent coins, normally the border color is transparent
+    output_1_3 [color="#333333"]
+    output_2_1 [color="#333333"]
+    output_2_2 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:strange_transactions
+[[file:strange_transactions.svg]]
+
+* A Stranger Transaction?
+#+NAME: fig:stranger_transactions
+#+BEGIN_SRC dot :file stranger_transactions.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    // group together the coins of a single transact    io  n
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+
+        // group together the inputs
+        subgraph cluster_tx_1_inputs {
+            graph [margin=0 style=invis]
+            input_1_1 [label=1.0]
+            input_1_2 [label=0.5]
+            input_1_3 [label=0.5]
+        }
+
+        // group together the outputs
+        subgraph cluster_tx_1_outputs {
+            graph [margin=0 style=invis]
+            output_1_1 [label=1.1]
+            output_1_2 [label=0.7999]
+            output_1_3 [label=0.1]
+        }
+
+        // add an invisible edge from one of the inputs to one of the outputs,
+        // causing them to be laid out in two columns
+        input_1_1 -> output_1_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_2 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_2_inputs {
+            graph [margin=0 style=invis]
+            input_2_1 [label=1.1]
+            input_2_2 [label=0.7999]
+        }
+        subgraph cluster_tx_2_outputs {
+            graph [margin=0 style=invis]
+            output_2_1 [label=1.0]
+            output_2_2 [label=0.8998]
+        }
+        input_2_1 -> output_2_1 [constraint=true len=0.01 style=invis]
+    }
+
+    // Connect outputs to the inputs that spend them
+    output_1_1 -> input_2_1
+    output_1_2 -> input_2_2
+
+    // Mark unspent coins, normally the border color is transparent
+    output_1_3 [color="#333333"]
+    output_2_1 [color="#333333"]
+    output_2_2 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:stranger_transactions
+[[file:stranger_transactions.svg]]
+
+* Not As Strange?
+#+NAME: fig:less_strange_transactions
+#+BEGIN_SRC dot :file less_strange_transactions.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    subgraph cluster_tx_3 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+
+        // group together the inputs
+        subgraph cluster_tx_1_inputs {
+            graph [margin=0 style=invis]
+            input_3_1 [label=1.8]
+        }
+
+        // group together the outputs
+        subgraph cluster_tx_1_outputs {
+            graph [margin=0 style=invis]
+            output_3_1 [label=1.0]
+            output_3_2 [label=0.7999]
+        }
+
+        // add an invisible edge from one of the inputs to one of the outputs,
+        // causing them to be laid out in two columns
+        input_3_1 -> output_3_2 [constraint=true len=0.01 style=invis]
+    }
+
+    // group together the coins of a single transact    io  n
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+
+        // group together the inputs
+        subgraph cluster_tx_1_inputs {
+            graph [margin=0 style=invis]
+            input_1_1 [label=1.0]
+            input_1_2 [label=0.2]
+        }
+
+        // group together the outputs
+        subgraph cluster_tx_1_outputs {
+            graph [margin=0 style=invis]
+            output_1_1 [label=1.1]
+            output_1_3 [label=0.0999]
+        }
+
+        // add an invisible edge from one of the inputs to one of the outputs,
+        // causing them to be laid out in two columns
+        input_1_1 -> output_1_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_2 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_2_inputs {
+            graph [margin=0 style=invis]
+            input_2_1 [label=1.1]
+            input_2_2 [label=0.7999]
+        }
+        subgraph cluster_tx_2_outputs {
+            graph [margin=0 style=invis]
+            output_2_1 [label=1.0]
+            output_2_2 [label=0.8998]
+        }
+        input_2_1 -> output_2_1 [constraint=true len=0.01 style=invis]
+    }
+
+    // Connect outputs to the inputs that spend them
+    output_1_1 -> input_2_1
+    output_3_2 -> input_2_2
+
+    // Mark unspent coins, normally the border color is transparent
+    output_1_3 [color="#333333"]
+    output_3_1 [color="#333333"]
+    output_2_1 [color="#333333"]
+    output_2_2 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:less_strange_transactions
+[[file:less_strange_transactions.svg]]
+
+* How effective are these heuristics?
+** Several papers
+*** [[https://eprint.iacr.org/2012/584.pdf][RS11]], [[https://sci-hub.se/https://dl.acm.org/doi/10.1145/2504730.2504747][MPJ+13]], ...
+*** see WabiSabi paper for more comprehensive list
+** Arguably the strongest result is [[https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/155286/eth-48205-01.pdf][Jonas Nick's thesis]]
+*** discovered BIP 37 privacy leak
+*** allowed collection of
+*** alarming results
+**** (for light clients ca. 2015)
+* Privacy Enhanced Transactions
+** Overt
+*** CoinJoin
+*** Lightning?
+** Covert
+*** Payjoin
+*** CoinJoinXT
+** Disjoint
+*** CoinSwap: Mercury, teleport-transactions
+*** CoinParty
+* CoinJoin: k-anonymity
+#+NAME: fig:basic_coinjoin
+#+BEGIN_SRC dot :file basic_coinjoin.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_2_inputs {
+            graph [margin=0 style=invis]
+            input_2_1 [label=1.1]
+            input_2_2 [label=0.999]
+            input_2_3 [label=0.002]
+        }
+        subgraph cluster_tx_2_outputs {
+            graph [margin=0 style=invis]
+            output_2_1 [label=1.0]
+            output_2_2 [label=1.0]
+            output_2_3 [label=0.0999]
+            output_2_4 [label=0.0009]
+        }
+        input_2_1 -> output_2_1 [constraint=true len=0.01 style=invis]
+    }
+
+    // Mark unspent coins, normally the border color is transparent
+    output_2_1 [color="#333333"]
+    output_2_2 [color="#333333"]
+    output_2_3 [color="#333333"]
+    output_2_4 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:basic_coinjoin
+[[file:basic_coinjoin.svg]]
+
+* CoinJoin
+#+NAME: fig:basic_coinjoin_colored
+#+BEGIN_SRC dot :file basic_coinjoin_colored.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_2_inputs {
+            graph [margin=0 style=invis]
+            input_2_1 [label=1.1 fillcolor="#ffcc99"]
+            input_2_2 [label=0.999 fillcolor="#9999ff"]
+            input_2_3 [label=0.002 fillcolor="#9999ff"]
+        }
+        subgraph cluster_tx_2_outputs {
+            graph [margin=0 style=invis]
+            output_2_1 [label=1.0]
+            output_2_2 [label=1.0]
+            output_2_3 [label=0.0999 fillcolor="#ffcc99"]
+            output_2_4 [label=0.0009 fillcolor="#9999ff"]
+        }
+        input_2_1 -> output_2_1 [constraint=true len=0.01 style=invis]
+    }
+
+    // Mark unspent coins, normally the border color is transparent
+    output_2_1 [color="#333333"]
+    output_2_2 [color="#333333"]
+    output_2_3 [color="#333333"]
+    output_2_4 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:basic_coinjoin_colored
+[[file:basic_coinjoin_colored.svg]]
+
+* Interconnected CoinJoins
+#+NAME: fig:large_coinjoin
+#+BEGIN_SRC dot :file large_coinjoin.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_1_inputs {
+            graph [margin=0 style=invis]
+            input_1_1 [label=1.0]
+            input_1_2 [label=1.0]
+            input_1_3 [label=1.0]
+            input_1_4 [label=1.0]
+        }
+        subgraph cluster_tx_1_outputs {
+            graph [margin=0 style=invis]
+            output_1_1 [label=1.0]
+            output_1_2 [label=1.0]
+            output_1_3 [label=1.0]
+            output_1_4 [label=1.0]
+        }
+        input_1_1 -> output_1_1 [constraint=true len=0.01 style=invis]
+    }
+
+    // Mark unspent coins, normally the border color is transparent
+    output_1_1 [color="#333333"]
+    output_1_2 [color="#333333"]
+    output_1_3 [color="#333333"]
+    output_1_4 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:large_coinjoin
+[[file:large_coinjoin.svg]]
+
+* Interconnected CoinJoins
+#+NAME: fig:coinjoin_network_no_fees
+#+BEGIN_SRC dot :file coinjoin_network_no_fees.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_1_inputs {
+            graph [margin=0 style=invis]
+            input_1_1 [label=1.0]
+            input_1_2 [label=1.0]
+        }
+        subgraph cluster_tx_1_outputs {
+            graph [margin=0 style=invis]
+            output_1_1 [label=1.0]
+            output_1_2 [label=1.0]
+        }
+        input_1_1 -> output_1_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_2 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_2_inputs {
+            graph [margin=0 style=invis]
+            input_2_1 [label=1.0]
+            input_2_2 [label=1.0]
+        }
+        subgraph cluster_tx_2_outputs {
+            graph [margin=0 style=invis]
+            output_2_1 [label=1.0]
+            output_2_2 [label=1.0]
+        }
+        input_2_1 -> output_2_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_3 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_3_inputs {
+            graph [margin=0 style=invis]
+            input_3_1 [label=1.0]
+            input_3_2 [label=1.0]
+        }
+        subgraph cluster_tx_3_outputs {
+            graph [margin=0 style=invis]
+            output_3_1 [label=1.0]
+            output_3_2 [label=1.0]
+        }
+        input_3_1 -> output_3_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_4 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_4_inputs {
+            graph [margin=0 style=invis]
+            input_4_1 [label=1.0]
+            input_4_2 [label=1.0]
+        }
+        subgraph cluster_tx_4_outputs {
+            graph [margin=0 style=invis]
+            output_4_1 [label=1.0]
+            output_4_2 [label=1.0]
+        }
+        input_4_1 -> output_4_1 [constraint=true len=0.01 style=invis]
+    }
+
+    output_1_1 -> input_3_1;
+    output_1_2 -> input_4_1;
+    output_2_1 -> input_3_2;
+    output_2_2 -> input_4_2;
+
+    // Mark unspent coins, normally the border color is transparent
+    output_3_1 [color="#333333"]
+    output_3_2 [color="#333333"]
+    output_4_1 [color="#333333"]
+    output_4_2 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:coinjoin_network_no_fees
+[[file:coinjoin_network_no_fees.svg]]
+
+* But actually...
+#+NAME: fig:coinjoin_network_with_fees
+#+BEGIN_SRC dot :file coinjoin_network_with_fees.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_1_inputs {
+            graph [margin=0 style=invis]
+            input_1_1 [label=1.002]
+            input_1_2 [label=1.002]
+        }
+        subgraph cluster_tx_1_outputs {
+            graph [margin=0 style=invis]
+            output_1_1 [label=1.001]
+            output_1_2 [label=1.001]
+        }
+        input_1_1 -> output_1_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_2 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_2_inputs {
+            graph [margin=0 style=invis]
+            input_2_1 [label=1.002]
+            input_2_2 [label=1.002]
+        }
+        subgraph cluster_tx_2_outputs {
+            graph [margin=0 style=invis]
+            output_2_1 [label=1.001]
+            output_2_2 [label=1.001]
+        }
+        input_2_1 -> output_2_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_3 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_3_inputs {
+            graph [margin=0 style=invis]
+            input_3_1 [label=1.001]
+            input_3_2 [label=1.001]
+        }
+        subgraph cluster_tx_3_outputs {
+            graph [margin=0 style=invis]
+            output_3_1 [label=1.0]
+            output_3_2 [label=1.0]
+        }
+        input_3_1 -> output_3_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_4 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_4_inputs {
+            graph [margin=0 style=invis]
+            input_4_1 [label=1.001]
+            input_4_2 [label=1.001]
+        }
+        subgraph cluster_tx_4_outputs {
+            graph [margin=0 style=invis]
+            output_4_1 [label=1.0]
+            output_4_2 [label=1.0]
+        }
+        input_4_1 -> output_4_1 [constraint=true len=0.01 style=invis]
+    }
+
+    output_1_1 -> input_3_1;
+    output_1_2 -> input_4_1;
+    output_2_1 -> input_3_2;
+    output_2_2 -> input_4_2;
+
+    // Mark unspent coins, normally the border color is transparent
+    output_3_1 [color="#333333"]
+    output_3_2 [color="#333333"]
+    output_4_1 [color="#333333"]
+    output_4_2 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:coinjoin_network_with_fees
+[[file:coinjoin_network_with_fees.svg]]
+
+* Change creates problems
+#+NAME: fig:toxic_change_before
+#+BEGIN_SRC dot :file toxic_change_before.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_1_inputs {
+            graph [margin=0 style=invis]
+            input_1_1 [label=1.001]
+            input_1_2 [label=1.001]
+        }
+        subgraph cluster_tx_1_outputs {
+            graph [margin=0 style=invis]
+            output_1_1 [label=1.0]
+            output_1_2 [label=1.0]
+        }
+        input_1_1 -> output_1_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_2 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_2_inputs {
+            graph [margin=0 style=invis]
+            input_2_1 [label=1.001]
+            input_2_2 [label=1.001]
+        }
+        subgraph cluster_tx_2_outputs {
+            graph [margin=0 style=invis]
+            output_2_1 [label=1.0]
+            output_2_2 [label=1.0]
+        }
+        input_2_1 -> output_2_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_3 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_3_inputs {
+            graph [margin=0 style=invis]
+            input_3_1 [label=1.0]
+        }
+        subgraph cluster_tx_3_outputs {
+            graph [margin=0 style=invis]
+            output_3_1 [label=0.7]
+            output_3_2 [label=0.2999]
+        }
+        input_3_1 -> output_3_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_4 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_4_inputs {
+            graph [margin=0 style=invis]
+            input_4_1 [label=1.0]
+        }
+        subgraph cluster_tx_4_outputs {
+            graph [margin=0 style=invis]
+            output_4_1 [label=0.25]
+            output_4_2 [label=0.7499]
+        }
+        input_4_1 -> output_4_1 [constraint=true len=0.01 style=invis]
+    }
+
+    output_1_2 -> input_3_1;
+    output_2_1 -> input_4_1;
+
+    // Mark unspent coins, normally the border color is transparent
+    output_1_1 [color="#333333"]
+    output_2_2 [color="#333333"]
+    output_3_1 [color="#333333"]
+    output_3_2 [color="#333333"]
+    output_4_1 [color="#333333"]
+    output_4_2 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:toxic_change_before
+[[file:toxic_change_before.svg]]
+
+* Change creates problems
+#+NAME: fig:toxic_change_after
+#+BEGIN_SRC dot :file toxic_change_after.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_1_inputs {
+            graph [margin=0 style=invis]
+            input_1_1 [label=1.001]
+            input_1_2 [label=1.001]
+        }
+        subgraph cluster_tx_1_outputs {
+            graph [margin=0 style=invis]
+            output_1_1 [label=1.0]
+            output_1_2 [label=1.0]
+        }
+        input_1_1 -> output_1_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_2 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_2_inputs {
+            graph [margin=0 style=invis]
+            input_2_1 [label=1.001]
+            input_2_2 [label=1.001]
+        }
+        subgraph cluster_tx_2_outputs {
+            graph [margin=0 style=invis]
+            output_2_1 [label=1.0]
+            output_2_2 [label=1.0]
+        }
+        input_2_1 -> output_2_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_3 {
+        graph [bgcolor="#ffa0a0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_3_inputs {
+            graph [margin=0 style=invis]
+            input_3_1 [label=1.0]
+        }
+        subgraph cluster_tx_3_outputs {
+            graph [margin=0 style=invis]
+            output_3_1 [label=0.7]
+            output_3_2 [label=0.2999]
+        }
+        input_3_1 -> output_3_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_4 {
+        graph [bgcolor="#ffa0a0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_4_inputs {
+            graph [margin=0 style=invis]
+            input_4_1 [label=1.0]
+        }
+        subgraph cluster_tx_4_outputs {
+            graph [margin=0 style=invis]
+            output_4_1 [label=0.25]
+            output_4_2 [label=0.7499]
+        }
+        input_4_1 -> output_4_1 [constraint=true len=0.01 style=invis]
+    }
+
+    subgraph cluster_tx_5 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_5_inputs {
+            graph [margin=0 style=invis]
+            input_5_1 [label=1.001]
+            input_5_2 [label=0.2999]
+            input_5_3 [label=0.7499]
+        }
+        subgraph cluster_tx_5_outputs {
+            graph [margin=0 style=invis]
+            output_5_1 [label=1.0]
+            output_5_2 [label=1.0]
+            output_5_3 [label=1.0497]
+        }
+        input_5_1 -> output_5_1 [constraint=true len=0.01 style=invis]
+    }
+
+    output_1_2 -> input_3_1;
+    output_2_1 -> input_4_1;
+    output_3_2 -> input_5_2;
+    output_4_2 -> input_5_3;
+
+    // Mark unspent coins, normally the border color is transparent
+    output_1_1 [color="#333333"]
+    output_2_2 [color="#333333"]
+    output_3_1 [color="#333333"]
+    output_4_1 [color="#333333"]
+    output_5_1 [color="#333333"]
+    output_5_2 [color="#333333"]
+    output_5_3 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:toxic_change_after
+[[file:toxic_change_after.svg]]
+
+* Entropic model for individual transactions
+** LaurentMT's Boltzmann
+** Sub-transaction model
+*** [[https://www.comsys.rwth-aachen.de/fileadmin/papers/2017/2017-maurer-trustcom-coinjoin.pdf][Anonymous CoinJoin Transactions with Arbitrary Values]] by Felix Konstantin Maurer, Till Neudecker, Martin Florian
+** *DO NOT* believe the "computational difficulty" bullshit!
+*** even for computationally bounded adversary!
+**** mixed integer programming
+**** SMT
+*** only non-trivial entropy provides meaningful assurance
+*** and even that can be brittle with external information
+* Sharedcoin style arbitrary output amounts
+#+NAME: fig:sharedcoin
+#+BEGIN_SRC dot :file sharedcoin.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_2_inputs {
+            graph [margin=0 style=invis]
+            input_1_1 [label=1.0]
+            input_1_2 [label=1.5]
+            input_1_3 [label=0.5]
+        }
+        subgraph cluster_tx_2_outputs {
+            graph [margin=0 style=invis]
+            output_1_1 [label=0.7]
+            output_1_2 [label=0.4]
+            output_1_3 [label=0.5999]
+            output_1_4 [label=1.2999]
+        }
+        input_1_1 -> output_1_1 [constraint=true len=0.01 style=invis]
+    }
+
+    // Mark unspent coins, normally the border color is transparent
+    output_1_1 [color="#333333"]
+    output_1_2 [color="#333333"]
+    output_1_3 [color="#333333"]
+    output_1_4 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:sharedcoin
+[[file:sharedcoin.svg]]
+
+* Knapsack Transactions
+#+NAME: fig:knapsack_coinjoin
+#+BEGIN_SRC dot :file knapsack_coinjoin.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_2_inputs {
+            graph [margin=0 style=invis]
+            input_1_1 [label=1.0]
+            input_1_2 [label=1.5]
+            input_1_3 [label=0.5]
+        }
+        subgraph cluster_tx_2_outputs {
+            graph [margin=0 style=invis]
+            output_1_1 [label=0.7]
+            output_1_2 [label=0.4]
+            output_1_3 [label=0.2999]
+            output_1_5 [label=0.5999]
+            output_1_6 [label=0.5]
+        }
+        input_1_1 -> output_1_1 [constraint=true len=0.01 style=invis]
+    }
+
+    // Mark unspent coins, normally the border color is transparent
+    output_1_1 [color="#333333"]
+    output_1_2 [color="#333333"]
+    output_1_3 [color="#333333"]
+    output_1_4 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:knapsack_coinjoin
+[[file:knapsack_coinjoin.svg]]
+
+* Generalizing Knapsack
+** Hamming Weight
+** Few standardized values
+** Many values through combinations
+** No distinction between payment & self spend
+** Wasabi 2.0 for the cargo cult version
+*** I'm sorry, Bitcoin, I tried... ;_;
+* Radix CoinJoins
+#+NAME: fig:radix_coinjoin
+#+BEGIN_SRC dot :file radix_coinjoin.svg
+strict digraph {
+    graph [bgcolor=transparent color="#666666" labelloc=b nodesep=0.05 penwidth=0.5 rankdir=LR ranksep=0.02 style=rounded]
+    node [color=transparent fillcolor="#ffffff" fontcolor="#000000" fontname=helvetica fontsize=11 height=0 margin=0.04 minsep=1 penwidth=2 sep=1 shape=box style="rounded,filled" width=0]
+    edge [color="#909090" arrowsize=0.5 minlen=3 penwidth=1]
+
+    subgraph cluster_tx_1 {
+        graph [bgcolor="#d0d0d0" margin=7 ranksep=0.02]
+        edge [minlen=1]
+        subgraph cluster_tx_2_inputs {
+            graph [margin=0 style=invis]
+            input_1_1 [label=1.23]
+            input_1_2 [label=0.75]
+            input_1_3 [label=1.0]
+            input_1_4 [label=0.2]
+            input_1_8 [label=0.05]
+            input_1_9 [label=0.02]
+            input_1_9 [label=0.02]
+            input_1_7 [label=0.5]
+            input_1_4 [label=0.2]
+            input_1_5 [label=0.05]
+
+        }
+        subgraph cluster_tx_2_outputs {
+            graph [margin=0 style=invis]
+            output_1_1 [label=1.0]
+            output_1_2 [label=0.2]
+            output_1_3 [label=0.02]
+            output_1_4 [label=0.01]
+            output_1_5 [label=0.5]
+            output_1_6 [label=0.2]
+            output_1_7 [label=0.05]
+            output_1_8 [label=1.2]
+            output_1_9 [label=0.55]
+            output_1_10 [label=0.27]
+        }
+
+        input_1_1 -> output_1_1 [constraint=true len=0.01 style=invis]
+    }
+
+    // Mark unspent coins, normally the border color is transparent
+    output_1_1 [color="#333333"]
+    output_1_2 [color="#333333"]
+    output_1_3 [color="#333333"]
+    output_1_4 [color="#333333"]
+    output_1_5 [color="#333333"]
+    output_1_6 [color="#333333"]
+    output_1_7 [color="#333333"]
+    output_1_8 [color="#333333"]
+    output_1_9 [color="#333333"]
+    output_1_10 [color="#333333"]
+}
+#+END_SRC
+
+#+RESULTS: fig:radix_coinjoin
+[[file:radix_coinjoin.svg]]
+
+* Radix CoinJoins
+** Logarithmic number of standard values per transaction
+** Each denomination can lie on strongly connected component of interconnection graph
+** Arbitrary values can be substituted by combinations of standard values
+* Graph aware entropic anonymity sets?
+** privacy decays exponentially with every marginal deanonymization
+** the blockchain is analogous a sequence of "data releases"
+** exponential number quasi-identifiers from ancestor relation
+*** k-anonymity for coins is hard!
+*** history intersection attacks on single point of origin
+** unclear how to model joint distribution over multiple points of origin
+*
+* Part 5: Optimization Problem Perspective
+* Costs
+** Fees, blockspace
+*** privacy nihilist / blockspace minimizing strategy
+** Time
+*** Exposure to unconfirmed coins (cost of CPFP)
+*** Delays from failure to coordinate
+* Utility of privacy
+** Lack of privacy is a liability
+** Depends on threat model
+*** Severity
+*** Risk
+** Variable (per user & per tx)
+* Decision space
+** coin selection
+** output value selection
+** resulting wallet state
+** a cost function always exists
+*** even if it's not in the code, can be described mathematically
+** satisficing vs. maximizing
+* Part 6: Practical challenges for multiparty transactions
+* Multiparty transactions require consensus
+** Parties must agree on a transaction
+** Every input must sign
+*** no clean solutions for this DoS vector
+*** mechanism design
+*** compromising on trustlessness
+*** ~SIGHASH_ANYONECANPAY~
+** Unsuccessful sessions leak information
+* Not all coins can be spent together
+** consensus level
+*** ~OP_CLTV~ specifying height vs. UNIX time
+** composability with L2 protocols
+*** non-segwit inputs make ~txid~ malleable
+*** precludes safe backout transactions
+* JoinMarket
+** single taker
+** multiple makers
+* Centralized CoinJoin
+** Server provides DoS protection
+*** (in theory =P)
+** Chaumian
+** Anonymous credentials
+*** KVAC
+*** Publicly verifiable?
+** Sybil resistance
+* Best of both worlds
+** multiple takers
+** multiple makers
+** coalition formation is hard!
+** incentive compatibility
+*** even in dynamic setting
+** Sybil deterrence through costliness
+*** fee cost
+*** proof of burn
+*** coindays destroyed
+*** sortition
+* KTHXBIE!
+
+# TODO: automate presentation boilerplate:
+# hide-mode-line?
+# render all: SPC-u C-u C-c C-x C-l
+# org-present
+# local variables:
+# org-format-latex-options: (plist-put org-format-latex-options :scale 5.0 :foreground default :background default)
+# org-image-actual-width: 600
+# line-spacing: 15
+# display-line-numbers: nil
+# hl-line-mode: nil
+# org-statup-with-latex-preview: t
+# org-present-mode: t
+# end:
