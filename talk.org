@@ -55,7 +55,7 @@
 *** "attributes"/columns describe them
 ** unique values: trivially non-anonymous
 ** but even non-unique values might suffice to deanonymize!
-*** *combinations* of quasi-identifiers can themselves be unique
+*** quasi-identifiers, *combinations* of attributes, can still be unique
 *** can be linked to external data sources to re-identify
 ** "Generalization & Suppression"
 *** a procedure for anonymizing data
